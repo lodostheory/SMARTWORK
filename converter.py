@@ -87,7 +87,7 @@ def parse_period(start, time_r, end):
     return f"{start} {time_r} ~ {end}".strip()
 
 
-def load_from_form(xlsx_path, department=""):
+def load_from_form(xlsx_path, department="", transport_type="자가용"):
     wb = load_workbook(xlsx_path, data_only=True)
     ws = wb.active
 
@@ -138,8 +138,8 @@ def load_from_form(xlsx_path, department=""):
 
         grade = get_transport_grade(pos)
         t_entries = [
-            TransportEntry(date=trip_date1, grade=grade),
-            TransportEntry(date=trip_date2, grade=grade),
+            TransportEntry(date=trip_date1, grade=grade, transport=transport_type),
+            TransportEntry(date=trip_date2, grade=grade, transport=transport_type),
         ]
 
         today = datetime.date.today()
@@ -421,8 +421,8 @@ def create_doc(data, out):
     return os.path.abspath(out)
 
 
-def batch_generate(xlsx_path, output_dir, department=""):
-    records = load_from_form(xlsx_path, department=department)
+def batch_generate(xlsx_path, output_dir, department="", transport_type="자가용"):
+    records = load_from_form(xlsx_path, department=department, transport_type=transport_type)
     os.makedirs(output_dir, exist_ok=True)
     saved = []
     for i, data in enumerate(records, start=1):

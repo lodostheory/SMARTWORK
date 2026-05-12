@@ -17,7 +17,8 @@ def convert():
         return jsonify({'error': '파일이 없습니다.'}), 400
 
     upload = request.files['file']
-    department = request.form.get('department', '').strip()
+    department     = request.form.get('department', '').strip()
+    transport_type = request.form.get('transport_type', '자가용').strip()
 
     if not upload.filename or not upload.filename.lower().endswith('.xlsx'):
         return jsonify({'error': '.xlsx 파일만 지원합니다.'}), 400
@@ -28,7 +29,7 @@ def convert():
         output_dir = os.path.join(tmpdir, 'output')
         upload.save(xlsx_path)
 
-        saved_files = batch_generate(xlsx_path, output_dir, department=department)
+        saved_files = batch_generate(xlsx_path, output_dir, department=department, transport_type=transport_type)
 
         if not saved_files:
             return jsonify({'error': '출장 신청 데이터를 찾을 수 없습니다.'}), 400

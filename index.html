@@ -40,6 +40,14 @@
             <label for="dept-input">소속 (학교명)</label>
             <input type="text" id="dept-input" placeholder="예: 고흥도화중학교" />
           </div>
+          <div class="form-group">
+            <label for="transport-type">교통편</label>
+            <select id="transport-type" name="transport_type">
+              <option value="자가용" selected>자가용</option>
+              <option value="기차">기차</option>
+              <option value="비행기">비행기</option>
+            </select>
+          </div>
 
           <div class="upload-area" id="upload-area" tabindex="0" role="button" aria-label="엑셀 파일 선택">
             <input type="file" id="xlsx-file" accept=".xlsx" aria-hidden="true" tabindex="-1" />

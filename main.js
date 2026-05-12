@@ -55,10 +55,12 @@ document.getElementById('converter-form').addEventListener('submit', async e => 
   e.preventDefault();
   if (!selectedFile) { convertError.textContent = '파일을 선택해주세요.'; return; }
 
-  const department = document.getElementById('dept-input').value.trim();
+  const department    = document.getElementById('dept-input').value.trim();
+  const transportType = document.getElementById('transport-type').value;
   const formData = new FormData();
   formData.append('file', selectedFile);
   formData.append('department', department);
+  formData.append('transport_type', transportType);
 
   convertLoading.classList.remove('hidden');
   convertError.textContent = '';
