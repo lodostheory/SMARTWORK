@@ -17,6 +17,7 @@
         web = {
           command = [".venv/bin/python3" "app.py"];
           manager = "web";
+          env = { PORT = "$PORT"; };
         };
       };
     };
