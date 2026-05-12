@@ -103,7 +103,7 @@ def load_from_form(xlsx_path, department=""):
     m_basis = _v(ws, FORM_CELLS["이동사항"])
 
     records = []
-    for idx in range(8):
+    for idx in range(1):
         base = 10 + idx * 3
         sd = _cell(ws, base, 13)
         tr = _cell(ws, base + 1, 14)

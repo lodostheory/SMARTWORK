@@ -73,22 +73,24 @@ document.getElementById('converter-form').addEventListener('submit', async e => 
       throw new Error(msg);
     }
 
-    const count = resp.headers.get('X-Record-Count');
-    const blob  = await resp.blob();
+    const blob = await resp.blob();
+    const filename = resp.headers.get('Content-Disposition')
+      ?.match(/filename[^;=\n]*=['"]?([^'";\n]*)['"]?/)?.[1]
+      ?? '출장여비정산신청서.docx';
 
     const url = URL.createObjectURL(blob);
     const a   = document.createElement('a');
     a.href = url;
-    a.download = '출장여비정산서_일괄.zip';
+    a.download = decodeURIComponent(filename);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
 
     convertResult.className = 'convert-result success';
-    convertResult.innerHTML = `✅ ${count ? `${count}건의` : ''} 여비정산서가 생성되어 다운로드되었습니다.`;
+    convertResult.innerHTML = `✅ 여비정산서가 생성되어 다운로드되었습니다.`;
     convertResult.classList.remove('hidden');
-    showToast(`${count ?? ''}건 변환 완료!`);
+    showToast('변환 완료!');
     clearFile();
 
   } catch (err) {

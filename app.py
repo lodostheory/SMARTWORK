@@ -1,4 +1,4 @@
-import io, os, tempfile, zipfile, shutil
+import io, os, tempfile, shutil
 from flask import Flask, request, send_file, jsonify
 
 app = Flask(__name__, static_folder='.', static_url_path='')
@@ -33,21 +33,16 @@ def convert():
         if not saved_files:
             return jsonify({'error': '출장 신청 데이터를 찾을 수 없습니다.'}), 400
 
-        zip_buf = io.BytesIO()
-        with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
-            for f_path in saved_files:
-                zf.write(f_path, os.path.basename(f_path))
-        zip_buf.seek(0)
+        docx_path = saved_files[0]
+        with open(docx_path, 'rb') as f:
+            buf = io.BytesIO(f.read())
 
-        resp = send_file(
-            zip_buf,
+        return send_file(
+            buf,
             as_attachment=True,
-            download_name='출장여비정산서_일괄.zip',
-            mimetype='application/zip',
+            download_name=os.path.basename(docx_path),
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         )
-        resp.headers['X-Record-Count'] = str(len(saved_files))
-        resp.headers['Access-Control-Expose-Headers'] = 'X-Record-Count'
-        return resp
 
     except Exception as e:
         return jsonify({'error': f'변환 중 오류가 발생했습니다: {str(e)}'}), 500
