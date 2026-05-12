@@ -76,11 +76,9 @@ document.getElementById('converter-form').addEventListener('submit', async e => 
     }
 
     const blob = await resp.blob();
-    const cd = resp.headers.get('Content-Disposition') ?? '';
-    const starMatch = cd.match(/filename\*=UTF-8''([^;\n]+)/i);
-    const filename = starMatch
-      ? decodeURIComponent(starMatch[1])
-      : (cd.match(/filename=['"]?([^'";\n]+)['"]?/)?.[1] ?? '출장여비정산신청서.docx');
+    const filename = resp.headers.get('Content-Disposition')
+      ?.match(/filename[^;=\n]*=['"]?([^'";\n]*)['"]?/)?.[1]
+      ?? '출장여비정산신청서.docx';
 
     const url = URL.createObjectURL(blob);
     const a   = document.createElement('a');

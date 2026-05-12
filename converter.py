@@ -426,9 +426,8 @@ def batch_generate(xlsx_path, output_dir, department="", transport_type="자가�
     os.makedirs(output_dir, exist_ok=True)
     saved = []
     for i, data in enumerate(records, start=1):
-        name_part = data.name if data.name else f"{i:03d}"
-        date_part = f"{data.year}{data.month}{data.day}"
-        out_path = os.path.join(output_dir, f"여비정산서({name_part},{date_part}).docx")
+        suffix = f"{data.name}_{data.year}{data.month}{data.day}" if data.name else f"{i:03d}"
+        out_path = os.path.join(output_dir, f"출장여비정산신청서_{suffix}.docx")
         path = create_doc(data, out_path)
         saved.append(path)
     return saved
