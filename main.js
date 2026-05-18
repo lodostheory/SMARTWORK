@@ -11,9 +11,8 @@ const convertLoading = document.getElementById('convert-loading');
 
 // ── 파일 선택 ──────────────────────────────────────────────
 function setFile(file) {
-  const name = file?.name.toLowerCase() ?? '';
-  if (!file || (!name.endsWith('.xlsx') && !name.endsWith('.pdf'))) {
-    convertError.textContent = '.xlsx 또는 .pdf 파일만 업로드할 수 있습니다.';
+  if (!file || !file.name.toLowerCase().endsWith('.xlsx')) {
+    convertError.textContent = '.xlsx 파일만 업로드할 수 있습니다.';
     return;
   }
   selectedFile = file;

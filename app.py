@@ -25,14 +25,12 @@ def convert():
     accommodation_actual   = request.form.get('accommodation_actual', '').strip()
     accommodation_reason   = request.form.get('accommodation_reason', '').strip()
 
-    fname = upload.filename.lower() if upload.filename else ""
-    if not fname.endswith('.xlsx') and not fname.endswith('.pdf'):
-        return jsonify({'error': '.xlsx 또는 .pdf 파일만 지원합니다.'}), 400
+    if not upload.filename or not upload.filename.lower().endswith('.xlsx'):
+        return jsonify({'error': '.xlsx 파일만 지원합니다.'}), 400
 
-    ext = '.pdf' if fname.endswith('.pdf') else '.xlsx'
     tmpdir = tempfile.mkdtemp()
     try:
-        xlsx_path = os.path.join(tmpdir, f'input{ext}')
+        xlsx_path = os.path.join(tmpdir, 'input.xlsx')
         output_dir = os.path.join(tmpdir, 'output')
         upload.save(xlsx_path)
 
