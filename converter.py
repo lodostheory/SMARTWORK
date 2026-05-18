@@ -456,15 +456,120 @@ def create_doc(data, out):
     return os.path.abspath(out)
 
 
-def batch_generate(xlsx_path, output_dir, department="", transport_type="자가용", departure="", arrival="",
-                   accommodation_limit="", accommodation_actual="", accommodation_reason=""):
-    records = load_from_form(
-        xlsx_path, department=department, transport_type=transport_type,
-        departure=departure, arrival=arrival,
+def load_from_pdf(pdf_path, department="", transport_type="자가용", departure="", arrival="",
+                  accommodation_limit="", accommodation_actual="", accommodation_reason=""):
+    import pdfplumber
+
+    with pdfplumber.open(pdf_path) as pdf:
+        full_text = "\n".join(p.extract_text() or "" for p in pdf.pages)
+        all_tables = []
+        for p in pdf.pages:
+            for t in (p.extract_tables() or []):
+                all_tables.append(t)
+
+    flat_rows = [
+        [str(c).strip() if c else "" for c in row]
+        for table in all_tables for row in table
+    ]
+
+    def _find(*patterns, default=""):
+        for pat in patterns:
+            if m := re.search(pat, full_text, re.S | re.M):
+                return m.group(1).strip()
+        return default
+
+    def _tbl(label):
+        for row in flat_rows:
+            for i, cell in enumerate(row):
+                if label in cell:
+                    for j in range(i + 1, len(row)):
+                        if row[j]:
+                            return row[j]
+        return ""
+
+    # Dates
+    all_dates = re.findall(r'\d{4}\.\d{2}\.\d{2}', full_text)
+    apply_date = all_dates[0] if all_dates else ""
+    start_date = all_dates[1] if len(all_dates) > 1 else apply_date
+    end_date   = all_dates[-1] if len(all_dates) > 2 else start_date
+
+    time_range = _find(r'(\d{1,2}:\d{2}\s*[~∼]\s*\d{1,2}:\d{2})')
+
+    position = _tbl("직급") or _tbl("직 급")
+    if not position:
+        for title in ["교장", "교감", "수석교사", "부장교사", "교사", "행정실장", "행정직원"]:
+            if title in full_text:
+                position = title
+                break
+
+    name = (_tbl("성명") or _tbl("성 명")
+            or _find(r'성\s*명\s+([가-힣]{2,5})'))
+
+    purpose = (_tbl("출장목적") or _tbl("출 장 목 적")
+               or _find(r'(?:출장\s*목적|목\s*적)\s+(.+?)(?=\s+\d{4}|\s+기간|\n)'))
+
+    destination = (_tbl("출장지") or _tbl("출 장 지")
+                   or _find(r'출\s*장\s*지\s+(.+?)(?=\s+서명|\n)'))
+
+    signature = _tbl("서명") or _tbl("서 명") or name
+
+    basis = (_tbl("이동사항") or _tbl("이 동 사 항")
+             or _find(r'이\s*동\s*사\s*항\s*\n(.+?)(?=\n\n|\Z)'))
+
+    period = parse_period(start_date, time_range, end_date)
+    ms = re.match(r"(\d{4})\.(\d{2})\.(\d{2})", start_date)
+    me = re.match(r"(\d{4})\.(\d{2})\.(\d{2})", end_date)
+    m_apply = re.match(r"(\d{4})\.(\d{2})\.(\d{2})", apply_date)
+    ay, am, ad = m_apply.groups() if m_apply else ("", "", "")
+
+    if ms:
+        _, mm, dd = ms.groups()
+        trip_date1 = f"{mm}.{dd}"
+    else:
+        trip_date1 = f"{am}.{ad}" if am and ad else ""
+
+    if me:
+        _, em, ed_val = me.groups()
+        trip_date2 = f"{em}.{ed_val}"
+        if trip_date1 == trip_date2:
+            trip_date2 = trip_date1
+    else:
+        trip_date2 = trip_date1
+
+    grade = get_transport_grade(position)
+    t_entries = [
+        TransportEntry(date=trip_date1, grade=grade, transport=transport_type, departure=departure, arrival=arrival),
+        TransportEntry(date=trip_date2, grade=grade, transport=transport_type, departure=arrival, arrival=departure),
+    ]
+
+    today = datetime.date.today()
+    ty, tm, td = str(today.year), f"{today.month:02d}", f"{today.day:02d}"
+
+    if not name:
+        return []
+
+    return [TravelExpenseData(
+        department=department, position=position, name=name,
+        travel_period=period, destination=destination, basis=basis,
+        purpose=purpose, transport=t_entries,
         accommodation_limit=accommodation_limit,
         accommodation_actual=accommodation_actual,
         accommodation_reason=accommodation_reason,
-    )
+        year=ty, month=tm, day=td, applicant=signature or name,
+    )]
+
+
+def batch_generate(input_path, output_dir, department="", transport_type="자가용", departure="", arrival="",
+                   accommodation_limit="", accommodation_actual="", accommodation_reason=""):
+    kwargs = dict(department=department, transport_type=transport_type,
+                  departure=departure, arrival=arrival,
+                  accommodation_limit=accommodation_limit,
+                  accommodation_actual=accommodation_actual,
+                  accommodation_reason=accommodation_reason)
+    if input_path.lower().endswith(".pdf"):
+        records = load_from_pdf(input_path, **kwargs)
+    else:
+        records = load_from_form(input_path, **kwargs)
     os.makedirs(output_dir, exist_ok=True)
     saved = []
     for i, data in enumerate(records, start=1):
