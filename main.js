@@ -85,33 +85,24 @@ document.getElementById('converter-form').addEventListener('submit', async e => 
       throw new Error(msg);
     }
 
-    const contentType = resp.headers.get('Content-Type') ?? '';
     const blob = await resp.blob();
-    const url = URL.createObjectURL(blob);
+    const cd = resp.headers.get('Content-Disposition') ?? '';
+    const starMatch = cd.match(/filename\*=UTF-8''([^;\n]+)/i);
+    const filename = starMatch
+      ? decodeURIComponent(starMatch[1])
+      : (cd.match(/filename=['"]?([^'";\n]+)['"]?/)?.[1] ?? '출장여비정산신청서.docx');
 
-    if (contentType.includes('application/pdf')) {
-      const printWin = window.open(url, '_blank');
-      if (printWin) {
-        setTimeout(() => { try { printWin.print(); } catch (_) {} }, 1000);
-      }
-      setTimeout(() => URL.revokeObjectURL(url), 300_000);
-    } else {
-      const cd = resp.headers.get('Content-Disposition') ?? '';
-      const starMatch = cd.match(/filename\*=UTF-8''([^;\n]+)/i);
-      const filename = starMatch
-        ? decodeURIComponent(starMatch[1])
-        : (cd.match(/filename=['"]?([^'";\n]+)['"]?/)?.[1] ?? '출장여비정산신청서.docx');
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = decodeURIComponent(filename);
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    }
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href = url;
+    a.download = decodeURIComponent(filename);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
 
     convertResult.className = 'convert-result success';
-    convertResult.innerHTML = '✅ 여비정산서가 생성되었습니다. 인쇄 창이 열립니다.';
+    convertResult.innerHTML = `✅ 여비정산서가 생성되어 다운로드되었습니다.`;
     convertResult.classList.remove('hidden');
     showToast('변환 완료!');
     clearFile();

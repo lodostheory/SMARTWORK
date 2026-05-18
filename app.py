@@ -47,28 +47,15 @@ def convert():
             return jsonify({'error': '출장 신청 데이터를 찾을 수 없습니다.'}), 400
 
         docx_path = saved_files[0]
+        with open(docx_path, 'rb') as f:
+            buf = io.BytesIO(f.read())
 
-        try:
-            import subprocess
-            subprocess.run(
-                ['libreoffice', '--headless', '--convert-to', 'pdf',
-                 '--outdir', output_dir, docx_path],
-                check=True, capture_output=True, timeout=120,
-                env={**os.environ, 'HOME': tmpdir},
-            )
-            pdf_path = os.path.splitext(docx_path)[0] + '.pdf'
-            with open(pdf_path, 'rb') as f:
-                buf = io.BytesIO(f.read())
-            return send_file(buf, mimetype='application/pdf',
-                             download_name=os.path.basename(pdf_path))
-        except Exception:
-            with open(docx_path, 'rb') as f:
-                buf = io.BytesIO(f.read())
-            return send_file(
-                buf, as_attachment=True,
-                download_name=os.path.basename(docx_path),
-                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            )
+        return send_file(
+            buf,
+            as_attachment=True,
+            download_name=os.path.basename(docx_path),
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        )
 
     except Exception as e:
         return jsonify({'error': f'변환 중 오류가 발생했습니다: {str(e)}'}), 500
