@@ -49,6 +49,43 @@
             </select>
           </div>
 
+          <div class="route-group">
+            <div class="form-group">
+              <label for="departure-input">출발지</label>
+              <input type="text" id="departure-input" placeholder="예: 고흥" />
+            </div>
+            <div class="route-arrow" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+            <div class="form-group">
+              <label for="arrival-input">도착지</label>
+              <input type="text" id="arrival-input" placeholder="예: 광주" />
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-header">숙박비</div>
+            <div class="form-group">
+              <label for="accommodation-limit">상한액</label>
+              <select id="accommodation-limit">
+                <option value="">해당 없음</option>
+                <option value="100,000원">100,000원 (서울특별시)</option>
+                <option value="80,000원">80,000원 (광역시·특별자치시)</option>
+                <option value="70,000원">70,000원 (기타지역)</option>
+              </select>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="accommodation-actual">실제소요액</label>
+                <input type="text" id="accommodation-actual" placeholder="예: 75,000원" />
+              </div>
+              <div class="form-group">
+                <label for="accommodation-reason">초과지출 사유</label>
+                <input type="text" id="accommodation-reason" placeholder="사유 입력" />
+              </div>
+            </div>
+          </div>
+
           <div class="upload-area" id="upload-area" tabindex="0" role="button" aria-label="엑셀 파일 선택">
             <input type="file" id="xlsx-file" accept=".xlsx" aria-hidden="true" tabindex="-1" />
             <div class="upload-content" id="upload-content">
@@ -94,6 +131,8 @@
           <li>개인출장관리 - 조회 - 출력버튼을 눌러 XLS 파일로 저장합니다</li>
           <li>소속 학교명을 입력합니다</li>
           <li>교통편을 선택합니다</li>
+          <li>출발지와 도착지를 입력합니다</li>
+          <li>숙박비 정보를 입력합니다 (해당 시)</li>
           <li>출장신청서 엑셀 파일(.xlsx)을 업로드합니다</li>
           <li><strong>변환하기</strong> 버튼을 클릭합니다</li>
           <li>생성된 여비정산서 Word 파일을 다운로드합니다</li>

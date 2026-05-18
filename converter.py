@@ -6,7 +6,7 @@ from openpyxl import load_workbook
 from docx import Document
 from docx.shared import Pt, Mm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_ALIGN_VERTICAL, WD_TABLE_ALIGNMENT
+from docx.enum.table import WD_ALIGN_VERTICAL, WD_TABLE_ALIGNMENT, WD_ROW_HEIGHT_RULE
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
@@ -87,7 +87,8 @@ def parse_period(start, time_r, end):
     return f"{start} {time_r} ~ {end}".strip()
 
 
-def load_from_form(xlsx_path, department="", transport_type="자가용"):
+def load_from_form(xlsx_path, department="", transport_type="자가용", departure="", arrival="",
+                   accommodation_limit="", accommodation_actual="", accommodation_reason=""):
     wb = load_workbook(xlsx_path, data_only=True)
     ws = wb.active
 
@@ -138,8 +139,8 @@ def load_from_form(xlsx_path, department="", transport_type="자가용"):
 
         grade = get_transport_grade(pos)
         t_entries = [
-            TransportEntry(date=trip_date1, grade=grade, transport=transport_type),
-            TransportEntry(date=trip_date2, grade=grade, transport=transport_type),
+            TransportEntry(date=trip_date1, grade=grade, transport=transport_type, departure=departure, arrival=arrival),
+            TransportEntry(date=trip_date2, grade=grade, transport=transport_type, departure=arrival, arrival=departure),
         ]
 
         today = datetime.date.today()
@@ -149,6 +150,9 @@ def load_from_form(xlsx_path, department="", transport_type="자가용"):
             department=department, position=pos, name=name,
             travel_period=period, destination=dest, basis=m_basis,
             purpose=purpose, transport=t_entries,
+            accommodation_limit=accommodation_limit,
+            accommodation_actual=accommodation_actual,
+            accommodation_reason=accommodation_reason,
             year=ty, month=tm, day=td, applicant=sign or name,
         ))
     return records
@@ -192,6 +196,19 @@ def _no_border(cell, top=False, bottom=False, left=False, right=False):
             e = OxmlElement(f"w:{side}")
             tcB.append(e)
         e.set(qn("w:val"), "none")
+
+
+def _fmt_amount(val: str) -> str:
+    if not val:
+        return val
+    v = val.replace(",", "").strip()
+    suffix = "원"
+    if v.endswith("원"):
+        v = v[:-1].strip()
+    try:
+        return f"{int(v):,}{suffix}"
+    except ValueError:
+        return val
 
 
 def _write(cell, txt, bold=False, al="center", fs=10, sh=None):
@@ -263,14 +280,13 @@ def create_doc(data, out):
 
     t = doc.add_paragraph()
     t.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    t.paragraph_format.space_after = Pt(10)
     r = t.add_run("출 장 여 비 정 산 신 청 서")
     r.font.name, r.font.size, r.bold = "맑은 고딕", Pt(20), True
     rPr = r._element.get_or_add_rPr()
     rF = OxmlElement("w:rFonts")
     rF.set(qn("w:eastAsia"), "맑은 고딕")
     rPr.append(rF)
-
-    doc.add_paragraph()
 
     tbl = doc.add_table(rows=13, cols=10)
     tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -279,8 +295,9 @@ def create_doc(data, out):
     for row in tbl.rows:
         for c in row.cells:
             _border(c)
+            c.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
-    cw = [17, 15, 15, 18, 18, 18, 18, 18, 16, 13]
+    cw = [17, 14, 15, 17, 18, 18, 20, 18, 16, 13]
     _set_grid(tbl, cw)
 
     SHADE = "E7E6E6"
@@ -324,10 +341,10 @@ def create_doc(data, out):
     _m(tbl, 4, 3, 4, 4)
     _write(tbl.cell(4, 3), data.accommodation_limit)
     _write(tbl.cell(4, 5), "실제\n소요액", bold=True, sh=SHADE, fs=9)
-    _write(tbl.cell(4, 6), data.accommodation_actual)
-    _m(tbl, 4, 7, 4, 8)
+    _write(tbl.cell(4, 6), _fmt_amount(data.accommodation_actual))
     _write(tbl.cell(4, 7), "초과지출\n사유", bold=True, sh=SHADE, fs=9)
-    _write(tbl.cell(4, 9), data.accommodation_reason, al="left")
+    _m(tbl, 4, 8, 4, 9)
+    _write(tbl.cell(4, 8), data.accommodation_reason, al="left")
 
     # Row 5: 식비
     _write(tbl.cell(5, 0), "식  비", bold=True, sh=SHADE)
@@ -337,9 +354,9 @@ def create_doc(data, out):
     _write(tbl.cell(5, 3), data.meal_paid)
     _write(tbl.cell(5, 5), "실제\n소요액", bold=True, sh=SHADE, fs=9)
     _write(tbl.cell(5, 6), data.meal_actual)
-    _m(tbl, 5, 7, 5, 8)
     _write(tbl.cell(5, 7), "초과지출\n사유", bold=True, sh=SHADE, fs=9)
-    _write(tbl.cell(5, 9), data.meal_reason, al="left")
+    _m(tbl, 5, 8, 5, 9)
+    _write(tbl.cell(5, 8), data.meal_reason, al="left")
 
     # Rows 6-9: 운임·연료비
     fuel_label = _m(tbl, 6, 0, 9, 0)
@@ -383,8 +400,11 @@ def create_doc(data, out):
     # Row 10: 안내문
     row10_cell = _m(tbl, 10, 0, 10, 9)
     row10_cell.text = ""
+    row10_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
     p1 = row10_cell.paragraphs[0]
     p1.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p1.paragraph_format.left_indent = Pt(11)
+    p1.paragraph_format.space_after = Pt(0)
     r1 = p1.add_run(
         "「공무원여비규정」제 16 조 제 1 항 및 제 2 항의 규정에 의하여 관계서류를 첨부하여\n"
         "위와같이 여비의 정산을 신청합니다. 끝."
@@ -395,9 +415,15 @@ def create_doc(data, out):
     rF1 = OxmlElement("w:rFonts")
     rF1.set(qn("w:eastAsia"), "맑은 고딕")
     rPr1.append(rF1)
+    p_gap = row10_cell.add_paragraph()
+    p_gap.paragraph_format.space_before = Pt(0)
+    p_gap.paragraph_format.space_after = Pt(0)
+    p_gap.add_run().font.size = Pt(10)
+
     p2 = row10_cell.add_paragraph()
     p2.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    r2 = p2.add_run("\n붙임  증빙영수증 1 부.")
+    p2.paragraph_format.left_indent = Pt(11)
+    r2 = p2.add_run("붙임  증빙영수증 1 부.")
     r2.font.name = "맑은 고딕"
     r2.font.size = Pt(11)
     rPr2 = r2._element.get_or_add_rPr()
@@ -410,19 +436,35 @@ def create_doc(data, out):
     _m(tbl, 11, 0, 11, 9)
     _write(tbl.cell(11, 0), f"{data.year}년   {data.month}월   {data.day}일", al="center", fs=11)
     _no_border(tbl.cell(11, 0), top=True, bottom=True)
+    tbl.rows[11].height = Mm(20)
+    tbl.rows[11].height_rule = WD_ROW_HEIGHT_RULE.AT_LEAST
 
     # Row 12: 신청인
     _m(tbl, 12, 0, 12, 9)
     _write(tbl.cell(12, 0), f"신 청 인     성 명     {data.applicant}     (인)", al="center", fs=11, bold=True)
     _no_border(tbl.cell(12, 0), top=True)
+    tbl.rows[12].height = Mm(14)
+    tbl.rows[12].height_rule = WD_ROW_HEIGHT_RULE.AT_LEAST
+
+    after = doc.add_paragraph()
+    after.paragraph_format.space_before = Pt(0)
+    after.paragraph_format.space_after = Pt(0)
+    after.add_run().font.size = Pt(12)
 
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     doc.save(out)
     return os.path.abspath(out)
 
 
-def batch_generate(xlsx_path, output_dir, department="", transport_type="자가용"):
-    records = load_from_form(xlsx_path, department=department, transport_type=transport_type)
+def batch_generate(xlsx_path, output_dir, department="", transport_type="자가용", departure="", arrival="",
+                   accommodation_limit="", accommodation_actual="", accommodation_reason=""):
+    records = load_from_form(
+        xlsx_path, department=department, transport_type=transport_type,
+        departure=departure, arrival=arrival,
+        accommodation_limit=accommodation_limit,
+        accommodation_actual=accommodation_actual,
+        accommodation_reason=accommodation_reason,
+    )
     os.makedirs(output_dir, exist_ok=True)
     saved = []
     for i, data in enumerate(records, start=1):

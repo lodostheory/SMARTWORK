@@ -57,10 +57,20 @@ document.getElementById('converter-form').addEventListener('submit', async e => 
 
   const department    = document.getElementById('dept-input').value.trim();
   const transportType = document.getElementById('transport-type').value;
+  const departure              = document.getElementById('departure-input').value.trim();
+  const arrival                = document.getElementById('arrival-input').value.trim();
+  const accommodationLimit     = document.getElementById('accommodation-limit').value;
+  const accommodationActual    = document.getElementById('accommodation-actual').value.trim();
+  const accommodationReason    = document.getElementById('accommodation-reason').value.trim();
   const formData = new FormData();
   formData.append('file', selectedFile);
   formData.append('department', department);
   formData.append('transport_type', transportType);
+  formData.append('departure', departure);
+  formData.append('arrival', arrival);
+  formData.append('accommodation_limit', accommodationLimit);
+  formData.append('accommodation_actual', accommodationActual);
+  formData.append('accommodation_reason', accommodationReason);
 
   convertLoading.classList.remove('hidden');
   convertError.textContent = '';
